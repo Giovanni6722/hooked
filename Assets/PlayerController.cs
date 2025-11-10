@@ -51,9 +51,27 @@ public class PlayerController : MonoBehaviour
     public Transform wallCheck;              // should be at about mid-height of player
     public Vector2 wallCheckSize = new Vector2(0.2f, 0.9f);
     public float wallCheckOffset = 0.35f;    // how far to the side we check
+    public float wallCheckRadius = 0.35f;    // radius for circle-based wall detection
     public float wallSlideSpeed = 2f;
     public bool isOnWall;
     public int wallSide;                     // -1 = left, 1 = right, 0 = none
+
+    [Header("Wall Cling / Climb")]
+    public float wallAttachGrace = 0.15f;          // time after touching wall before slide is forced
+    public float maxWallClingTime = 1.25f;         // total cling time
+    public float wallClimbSpeed = 3f;              // legacy climb speed
+    public float wallClimbSpeedUp = 5f;            // climb speed upward while clinging
+    public float wallClimbSpeedDown = 3f;          // slide speed downward while clinging on purpose
+    public float wallClingDrainWhileClimbing = 2f; // multiplier for drain while moving
+
+    [Header("Gravity")]
+    public float normalGravityScale = 3f;          // gravity used normally
+    public float wallClingGravityScale = 0f;       // gravity while clinging
+
+    [Header("Wall Jump")]
+    public float wallJumpHorizontalForce = 10f;    // horizontal impulse away from wall
+    public float wallJumpVerticalForce = 12f;      // vertical impulse on wall jump
+    public float wallRegrabDelay = 0.15f;          // delay before wall can be grabbed again
 
     [Header("Debug")]
     public bool debugWalls = false;
@@ -69,6 +87,15 @@ public class PlayerController : MonoBehaviour
 
     private float coyoteTimeCounter;
     private float jumpBufferCounter;
+
+    private bool wasOnWallLastFrame;
+    private float wallAttachTimer;
+    private float wallClingTimer;
+    private bool isWallClinging;
+    private float wallRegrabTimer;           // counts down after wall jump
+
+    // tracks the side of the wall that was last wall-jumped
+    private int lastWallJumpSide = 0;        // 0 = none, 1 = right wall, -1 = left wall
 
     void Awake()
     {
@@ -97,6 +124,7 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         rb.freezeRotation = true;
+        normalGravityScale = rb.gravityScale;
     }
 
     void Update()
@@ -113,31 +141,45 @@ public class PlayerController : MonoBehaviour
             extraJumpsRemaining = maxExtraJumps;
             dashReadyInAir      = true;
             dashCooldownTicks   = 0;
+            isWallClinging      = false;
+            wallClingTimer      = maxWallClingTime;
+            wallAttachTimer     = 0f;
+            wallRegrabTimer     = 0f;
+            lastWallJumpSide    = 0; // clears wall-jump lock on ground
         }
 
-        // --- WALL DETECTION (overlap box, super reliable) ---
-        // we check BOTH sides, using the same groundLayer (because walls == ground in your scene)
-        bool hitRight = Physics2D.OverlapBox(
-            wallCheck.position + Vector3.right * wallCheckOffset,
-            wallCheckSize,
-            0f,
-            groundLayer
-        );
-        bool hitLeft = Physics2D.OverlapBox(
-            wallCheck.position + Vector3.left * wallCheckOffset,
-            wallCheckSize,
-            0f,
-            groundLayer
-        );
+        // --- WALL DETECTION (circle overlap, more forgiving) ---
+        Vector2 basePos = wallCheck.position;
+        Vector2 rightPos = basePos + Vector2.right * wallCheckOffset;
+        Vector2 leftPos  = basePos + Vector2.left  * wallCheckOffset;
+
+        bool hitRight = Physics2D.OverlapCircle(rightPos, wallCheckRadius, groundLayer);
+        bool hitLeft  = Physics2D.OverlapCircle(leftPos,  wallCheckRadius, groundLayer);
 
         bool touchingWall = !isGrounded && (hitRight || hitLeft);
-        isOnWall = touchingWall;
+
+        // prevents immediate regrab after wall jump
+        bool allowWall = wallRegrabTimer <= 0f;
+        isOnWall = touchingWall && allowWall;
+
         wallSide = hitRight ? 1 : (hitLeft ? -1 : 0);
 
-        //wall debug
+        // resets per-wall jump lock when entering a different wall side
+        if (isOnWall && wallSide != 0 && wallSide != lastWallJumpSide)
+        {
+            lastWallJumpSide = 0;
+        }
+
+        if (isOnWall && !wasOnWallLastFrame)
+        {
+            wallAttachTimer = wallAttachGrace;
+            wallClingTimer  = maxWallClingTime;
+            isWallClinging  = false;
+        }
+
         if (debugWalls)
         {
-            Debug.Log($"WALL touch={touchingWall} hitR={hitRight} hitL={hitLeft} side={wallSide} grounded={isGrounded}");
+            Debug.Log($"WALL touch={touchingWall} hitR={hitRight} hitL={hitLeft} side={wallSide} grounded={isGrounded} clingTimer={wallClingTimer}");
         }
 
         // --- Coyote & jump buffer ---
@@ -147,6 +189,9 @@ public class PlayerController : MonoBehaviour
         jumpBufferCounter = Mathf.Max(0f, jumpBufferCounter - Time.deltaTime);
 
         if (dashCooldownTimer > 0f) dashCooldownTimer -= Time.deltaTime;
+        if (wallRegrabTimer > 0f)   wallRegrabTimer   -= Time.deltaTime;
+
+        wasOnWallLastFrame = isOnWall;
     }
 
     void FixedUpdate()
@@ -185,60 +230,103 @@ public class PlayerController : MonoBehaviour
         // ───────────────── NORMAL BRANCH ─────────────────
         else
         {
-            // base movement
             float speed = moveSpeed;
             if (sprintHeld && (allowAirSprint || isGrounded)) speed *= sprintMultiplier;
             vx = moveInput.x * speed;
 
-            // are we pressing into wall this frame?
             bool pressingIntoWall =
                 (wallSide == 1 && moveInput.x > 0.1f) ||
                 (wallSide == -1 && moveInput.x < -0.1f);
 
-            // --- WALL BEHAVIOR ---
             if (isOnWall)
             {
-                // don't let us keep pushing into wall forever
                 if (pressingIntoWall)
                     vx = 0;
 
-                // force slide speed (since friction is 0)
-                if (vy > -wallSlideSpeed)
-                    vy = -wallSlideSpeed;
+                bool canCling = sprintHeld && wallClingTimer > 0f;
+
+                if (canCling)
+                {
+                    isWallClinging = true;
+                    rb.gravityScale = wallClingGravityScale;
+
+                    float verticalInput = moveInput.y;
+
+                    if (verticalInput > 0.1f)
+                    {
+                        vy = wallClimbSpeedUp;
+                        wallClingTimer -= Time.fixedDeltaTime * wallClingDrainWhileClimbing;
+                    }
+                    else if (verticalInput < -0.1f)
+                    {
+                        vy = -wallClimbSpeedDown;
+                        wallClingTimer -= Time.fixedDeltaTime * wallClingDrainWhileClimbing;
+                    }
+                    else
+                    {
+                        vy = 0f;
+                        wallClingTimer -= Time.fixedDeltaTime;
+                    }
+                }
+                else
+                {
+                    isWallClinging = false;
+                    rb.gravityScale = normalGravityScale;
+
+                    if (wallAttachTimer > 0f)
+                    {
+                        wallAttachTimer -= Time.fixedDeltaTime;
+                    }
+                    else
+                    {
+                        if (vy > -wallSlideSpeed)
+                            vy = -wallSlideSpeed;
+                    }
+                }
             }
 
-            // --- JUMP LOGIC ---
             bool wantJump = jumpBufferCounter > 0f;
 
             if (wantJump)
             {
-                // ground / coyote
                 if (coyoteTimeCounter > 0f)
                 {
                     vy = jumpForce;
                     jumpBufferCounter = 0f;
                     coyoteTimeCounter = 0f;
                 }
-                // air / double
                 else if (allowDoubleJump && extraJumpsRemaining > 0)
                 {
                     vy = jumpForce;
                     jumpBufferCounter = 0f;
                     extraJumpsRemaining--;
                 }
-                // wall jump
                 else if (isOnWall)
                 {
-                    float wallJumpDir = -wallSide;
-                    vx = wallJumpDir * moveSpeed * 1.2f;
-                    vy = jumpForce;
-                    jumpBufferCounter = 0f;
+                    bool wallJumpAllowed = (wallSide != 0) && (lastWallJumpSide != wallSide);
+
+                    if (wallJumpAllowed)
+                    {
+                        float dir = -wallSide;
+                        vx = dir * wallJumpHorizontalForce;
+                        vy = wallJumpVerticalForce;
+                        jumpBufferCounter = 0f;
+                        isWallClinging = false;
+                        wallAttachTimer = 0f;
+                        rb.gravityScale = normalGravityScale;
+                        wallRegrabTimer = wallRegrabDelay;
+                        lastWallJumpSide = wallSide; // records wall side that was just jumped from
+                    }
                 }
             }
 
-            // short hop
             if (vy > 0f && !jumpHeld)
                 vy *= shortHopMultiplier;
+        }
+
+        if (!isOnWall && !isDashing && !isWallClinging)
+        {
+            rb.gravityScale = normalGravityScale;
         }
 
         rb.velocity = new Vector2(vx, vy);
@@ -299,11 +387,12 @@ public class PlayerController : MonoBehaviour
         if (wallCheck)
         {
             Gizmos.color = Color.blue;
-            // draw the overlap boxes on both sides so you can see range
             Vector3 rightPos = wallCheck.position + Vector3.right * wallCheckOffset;
             Vector3 leftPos  = wallCheck.position + Vector3.left  * wallCheckOffset;
             Gizmos.DrawWireCube(rightPos, wallCheckSize);
             Gizmos.DrawWireCube(leftPos,  wallCheckSize);
+            Gizmos.DrawWireSphere(rightPos, wallCheckRadius);
+            Gizmos.DrawWireSphere(leftPos,  wallCheckRadius);
         }
     }
 }
