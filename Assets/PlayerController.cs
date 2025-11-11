@@ -33,7 +33,7 @@ public class PlayerController : MonoBehaviour
     public float jumpForce = 12f;
     public Transform groundCheck;
     public float groundCheckRadius = 0.2f;
-    public LayerMask groundLayer; // we'll use this for walls too
+    public LayerMask groundLayer; // used for both ground and walls
     public bool allowDoubleJump = true;
     public int maxExtraJumps = 1;
     public int extraJumpsRemaining = 0;
@@ -48,30 +48,30 @@ public class PlayerController : MonoBehaviour
     [Range(0f, 2f)] public float dashMomentumCarryMultiplier = 1.0f;
 
     [Header("Wall Detection")]
-    public Transform wallCheck;              // should be at about mid-height of player
+    public Transform wallCheck;
     public Vector2 wallCheckSize = new Vector2(0.2f, 0.9f);
-    public float wallCheckOffset = 0.35f;    // how far to the side we check
-    public float wallCheckRadius = 0.35f;    // radius for circle-based wall detection
+    public float wallCheckOffset = 0.35f;
+    public float wallCheckRadius = 0.35f;
     public float wallSlideSpeed = 2f;
     public bool isOnWall;
-    public int wallSide;                     // -1 = left, 1 = right, 0 = none
+    public int wallSide; // -1 = left, 1 = right, 0 = none
 
     [Header("Wall Cling / Climb")]
-    public float wallAttachGrace = 0.15f;          // time after touching wall before slide is forced
-    public float maxWallClingTime = 1.25f;         // total cling time
-    public float wallClimbSpeed = 3f;              // legacy climb speed
-    public float wallClimbSpeedUp = 5f;            // climb speed upward while clinging
-    public float wallClimbSpeedDown = 3f;          // slide speed downward while clinging on purpose
-    public float wallClingDrainWhileClimbing = 2f; // multiplier for drain while moving
+    public float wallAttachGrace = 0.15f;
+    public float maxWallClingTime = 1.25f;
+    public float wallClimbSpeed = 3f;
+    public float wallClimbSpeedUp = 5f;
+    public float wallClimbSpeedDown = 3f;
+    public float wallClingDrainWhileClimbing = 2f;
 
     [Header("Gravity")]
-    public float normalGravityScale = 3f;          // gravity used normally
-    public float wallClingGravityScale = 0f;       // gravity while clinging
+    public float normalGravityScale = 3f;
+    public float wallClingGravityScale = 0f;
 
     [Header("Wall Jump")]
-    public float wallJumpHorizontalForce = 10f;    // horizontal impulse away from wall
-    public float wallJumpVerticalForce = 12f;      // vertical impulse on wall jump
-    public float wallRegrabDelay = 0.15f;          // delay before wall can be grabbed again
+    public float wallJumpHorizontalForce = 10f;
+    public float wallJumpVerticalForce = 12f;
+    public float wallRegrabDelay = 0.15f;
 
     [Header("Debug")]
     public bool debugWalls = false;
@@ -92,27 +92,23 @@ public class PlayerController : MonoBehaviour
     private float wallAttachTimer;
     private float wallClingTimer;
     private bool isWallClinging;
-    private float wallRegrabTimer;           // counts down after wall jump
+    private float wallRegrabTimer;
 
-    // tracks the side of the wall that was last wall-jumped
-    private int lastWallJumpSide = 0;        // 0 = none, 1 = right wall, -1 = left wall
+    private int lastWallJumpSide = 0;
 
     void Awake()
     {
         controls = new PlayerControls();
 
-        // Movement axis
         controls.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
         controls.Player.Move.canceled  += ctx => moveInput = Vector2.zero;
 
-        // Jump press (buffer)
         controls.Player.Jump.performed += _ =>
         {
             jumpPressed = true;
             jumpBufferCounter = jumpBufferTime;
         };
 
-        // Sprint (dash)
         controls.Player.Sprint.started  += _ => { sprintHeld = true;  TryStartDash(); };
         controls.Player.Sprint.canceled += _ =>  sprintHeld = false;
     }
@@ -145,30 +141,24 @@ public class PlayerController : MonoBehaviour
             wallClingTimer      = maxWallClingTime;
             wallAttachTimer     = 0f;
             wallRegrabTimer     = 0f;
-            lastWallJumpSide    = 0; // clears wall-jump lock on ground
+            lastWallJumpSide    = 0;
         }
 
-        // --- WALL DETECTION (circle overlap, more forgiving) ---
+        // --- WALL DETECTION (circle overlap) ---
         Vector2 basePos = wallCheck.position;
         Vector2 rightPos = basePos + Vector2.right * wallCheckOffset;
         Vector2 leftPos  = basePos + Vector2.left  * wallCheckOffset;
 
         bool hitRight = Physics2D.OverlapCircle(rightPos, wallCheckRadius, groundLayer);
         bool hitLeft  = Physics2D.OverlapCircle(leftPos,  wallCheckRadius, groundLayer);
-
         bool touchingWall = !isGrounded && (hitRight || hitLeft);
 
-        // prevents immediate regrab after wall jump
         bool allowWall = wallRegrabTimer <= 0f;
         isOnWall = touchingWall && allowWall;
-
         wallSide = hitRight ? 1 : (hitLeft ? -1 : 0);
 
-        // resets per-wall jump lock when entering a different wall side
         if (isOnWall && wallSide != 0 && wallSide != lastWallJumpSide)
-        {
             lastWallJumpSide = 0;
-        }
 
         if (isOnWall && !wasOnWallLastFrame)
         {
@@ -178,16 +168,12 @@ public class PlayerController : MonoBehaviour
         }
 
         if (debugWalls)
-        {
-            Debug.Log($"WALL touch={touchingWall} hitR={hitRight} hitL={hitLeft} side={wallSide} grounded={isGrounded} clingTimer={wallClingTimer}");
-        }
+            Debug.Log($"WALL touch={touchingWall} side={wallSide} grounded={isGrounded} clingTimer={wallClingTimer}");
 
-        // --- Coyote & jump buffer ---
         if (isGrounded) coyoteTimeCounter = coyoteTime;
         else            coyoteTimeCounter = Mathf.Max(0f, coyoteTimeCounter - Time.deltaTime);
 
         jumpBufferCounter = Mathf.Max(0f, jumpBufferCounter - Time.deltaTime);
-
         if (dashCooldownTimer > 0f) dashCooldownTimer -= Time.deltaTime;
         if (wallRegrabTimer > 0f)   wallRegrabTimer   -= Time.deltaTime;
 
@@ -201,7 +187,6 @@ public class PlayerController : MonoBehaviour
         float vx = rb.velocity.x;
         float vy = rb.velocity.y;
 
-        // ───────────────── DASH BRANCH ─────────────────
         if (isDashing)
         {
             float dashVx = dashSpeed * (dashDirection >= 0 ? 1 : -1);
@@ -227,20 +212,33 @@ public class PlayerController : MonoBehaviour
                 if (dashTimer <= 0f) isDashing = false;
             }
         }
-        // ───────────────── NORMAL BRANCH ─────────────────
         else
         {
             float speed = moveSpeed;
             if (sprintHeld && (allowAirSprint || isGrounded)) speed *= sprintMultiplier;
             vx = moveInput.x * speed;
 
-            bool pressingIntoWall =
-                (wallSide == 1 && moveInput.x > 0.1f) ||
-                (wallSide == -1 && moveInput.x < -0.1f);
+            bool pressingIntoWall = (wallSide == 1 && moveInput.x > 0.1f) || (wallSide == -1 && moveInput.x < -0.1f);
 
             if (isOnWall)
             {
-                if (pressingIntoWall)
+                // snaps player to wall so there is no hover gap
+                bool snapped = false;
+                {
+                    Vector2 origin = rb.position;
+                    Vector2 dir = (wallSide == 1) ? Vector2.right : Vector2.left;
+                    float snapDist = 0.25f;
+                    RaycastHit2D hit = Physics2D.Raycast(origin, dir, snapDist, groundLayer);
+                    if (hit.collider != null)
+                    {
+                        float newX = hit.point.x - (dir.x * 0.01f);
+                        rb.position = new Vector2(newX, rb.position.y);
+                        snapped = true;
+                    }
+                }
+
+                // only stop horizontal input after being snapped to the wall
+                if (pressingIntoWall && snapped)
                     vx = 0;
 
                 bool canCling = sprintHeld && wallClingTimer > 0f;
@@ -248,7 +246,7 @@ public class PlayerController : MonoBehaviour
                 if (canCling)
                 {
                     isWallClinging = true;
-                    rb.gravityScale = wallClingGravityScale;
+                    vx = 0f;
 
                     float verticalInput = moveInput.y;
 
@@ -271,7 +269,6 @@ public class PlayerController : MonoBehaviour
                 else
                 {
                     isWallClinging = false;
-                    rb.gravityScale = normalGravityScale;
 
                     if (wallAttachTimer > 0f)
                     {
@@ -313,9 +310,11 @@ public class PlayerController : MonoBehaviour
                         jumpBufferCounter = 0f;
                         isWallClinging = false;
                         wallAttachTimer = 0f;
-                        rb.gravityScale = normalGravityScale;
                         wallRegrabTimer = wallRegrabDelay;
-                        lastWallJumpSide = wallSide; // records wall side that was just jumped from
+                        lastWallJumpSide = wallSide;
+
+                        isOnWall = false;
+                        wasOnWallLastFrame = false;
                     }
                 }
             }
@@ -324,22 +323,16 @@ public class PlayerController : MonoBehaviour
                 vy *= shortHopMultiplier;
         }
 
-        if (!isOnWall && !isDashing && !isWallClinging)
-        {
-            rb.gravityScale = normalGravityScale;
-        }
-
         rb.velocity = new Vector2(vx, vy);
+        rb.gravityScale = isWallClinging ? wallClingGravityScale : normalGravityScale;
     }
 
     private void TryStartDash()
     {
         if (dashCooldownTicks > 0) return;
-
         bool groundDash = isGrounded;
         bool canAirDash = !isGrounded && allowAirDash && (availableAirDashes > 0);
         if (!(groundDash || canAirDash)) return;
-
         StartDash(consumeAir: !isGrounded);
     }
 
