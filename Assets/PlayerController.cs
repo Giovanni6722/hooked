@@ -153,6 +153,10 @@ public class PlayerController : MonoBehaviour
     private float wallLatchTimer = 0f;              
     private bool wasOnWallEffective = false;        
 
+    // one-time-per-wall refresh gate
+    private bool wallRefreshGiven = false;          // true after granting resources on a wall side
+    private int  wallRefreshSideGiven = 0;          // remembers which side granted the refresh
+
     void Awake()
     {
         controls = new PlayerControls();
@@ -213,6 +217,10 @@ public class PlayerController : MonoBehaviour
 
             wallLatchTimer = 0f;
             wasOnWallEffective = false;
+
+            // reset one-time wall refresh gating on ground
+            wallRefreshGiven = false;
+            wallRefreshSideGiven = 0;
         }
 
         // wall detection positions
@@ -258,23 +266,38 @@ public class PlayerController : MonoBehaviour
         if (hitRight) effectiveSide = 1;
         else if (hitLeft) effectiveSide = -1;
         else if (nearRight) effectiveSide = 1;
-        else if (nearLeft) effectiveSide = -1;
+        else if (nearLeft)  effectiveSide = -1;
 
         isOnWall = effectiveOnWall;
         wallSide = effectiveSide;
 
-        // on first effective contact: start grace/cling and refill airtime resources
-        if (effectiveOnWall && !wasOnWallEffective)
+        // one-time-per-wall refresh:
+        // grants once per side; does not re-grant for flicker on the same side;
+        // resets when grounded or when switching to the opposite wall side.
+        if (isOnWall && wallSide != 0)
         {
-            wallAttachTimer = wallAttachGrace;
-            wallClingTimer  = maxWallClingTime;
-            isWallClinging  = false;
+            // allow a new grant if switching sides
+            if (wallRefreshSideGiven != wallSide)
+            {
+                wallRefreshGiven = false;
+            }
 
-            // refill airtime resources on first wall contact
-            availableAirDashes  = dashCount;
-            extraJumpsRemaining = maxExtraJumps;
-            dashReadyInAir      = true;
-            dashCooldownTicks   = 0;
+            if (!wallRefreshGiven)
+            {
+                // start grace/cling
+                wallAttachTimer = wallAttachGrace;
+                wallClingTimer  = maxWallClingTime;
+                isWallClinging  = false;
+
+                // grant airtime resources once for this wall side
+                availableAirDashes  = dashCount;
+                extraJumpsRemaining = maxExtraJumps;
+                dashReadyInAir      = true;
+                dashCooldownTicks   = 0;
+
+                wallRefreshGiven = true;
+                wallRefreshSideGiven = wallSide;
+            }
         }
 
         wasOnWallEffective = effectiveOnWall;
@@ -282,7 +305,7 @@ public class PlayerController : MonoBehaviour
 
         if (debugWalls)
         {
-            Debug.Log($"WALL eff={effectiveOnWall} side={wallSide} grounded={isGrounded} latch={wallLatchTimer:0.000}");
+            Debug.Log($"WALL eff={effectiveOnWall} side={wallSide} grounded={isGrounded} latch={wallLatchTimer:0.000} granted={wallRefreshGiven} grantedSide={wallRefreshSideGiven}");
         }
 
         if (isGrounded) coyoteTimeCounter = coyoteTime;
@@ -298,8 +321,8 @@ public class PlayerController : MonoBehaviour
     {
         if (dashCooldownTicks > 0) dashCooldownTicks--;
 
-        float vx = rb.linearVelocity.x;
-        float vy = rb.linearVelocity.y;
+        float vx = rb.velocity.x;
+        float vy = rb.velocity.y;
 
         if (isDashing)
         {
@@ -337,7 +360,7 @@ public class PlayerController : MonoBehaviour
             }
             else
             {
-                vx = rb.linearVelocity.x; // keeps carried momentum before the momentum gate runs
+                vx = rb.velocity.x; // keeps carried momentum before the momentum gate runs
             }
 
             bool pressingIntoWall = (wallSide == 1 && moveInput.x > 0.1f) || (wallSide == -1 && moveInput.x < -0.1f);
@@ -395,24 +418,22 @@ public class PlayerController : MonoBehaviour
                     }
                     else
                     {
-                        // --- CONSISTENT WALL SLIDE (gravity-agnostic) ---
+                        // CONSISTENT WALL SLIDE (gravity-agnostic)
                         float dot = moveInput.x * wallSide;
 
                         float targetSpeed;
-                        if      (dot >  0.1f) targetSpeed = wallSlideSpeedInto;    // holding toward wall
-                        else if (dot < -0.1f) targetSpeed = wallSlideSpeedAway;    // holding away from wall
-                        else                  targetSpeed = wallSlideSpeedNeutral; // no horizontal input
+                        if      (dot >  0.1f) targetSpeed = wallSlideSpeedInto;
+                        else if (dot < -0.1f) targetSpeed = wallSlideSpeedAway;
+                        else                  targetSpeed = wallSlideSpeedNeutral;
 
                         float targetVy = -Mathf.Abs(targetSpeed);
 
-                        // hard cap downward velocity so gravity/fall history can't exceed slide speed
                         if (vy < targetVy)
                         {
-                            vy = targetVy; // immediate clamp if falling faster than allowed
+                            vy = targetVy; // clamp if falling faster than allowed
                         }
                         else
                         {
-                            // smooth approach when falling slower or moving upward
                             vy = Mathf.MoveTowards(vy, targetVy, wallSlideAccel * Time.fixedDeltaTime);
                         }
                     }
@@ -617,7 +638,7 @@ public class PlayerController : MonoBehaviour
             if (vy > 0f && !jumpHeld) vy *= shortHopMultiplier;
         }
 
-        rb.linearVelocity = new Vector2(vx, vy);
+        rb.velocity = new Vector2(vx, vy);
         rb.gravityScale = isWallClinging ? wallClingGravityScale : normalGravityScale;
     }
 
@@ -652,7 +673,7 @@ public class PlayerController : MonoBehaviour
             else { isDashing = false; return; }
         }
 
-        rb.linearVelocity = new Vector2(dashSpeed * dashDirection, rb.linearVelocity.y);
+        rb.velocity = new Vector2(dashSpeed * dashDirection, rb.velocity.y);
 
         if (dashInvincibility) StartCoroutine(DashIFrames());
     }
@@ -689,4 +710,5 @@ public class PlayerController : MonoBehaviour
         }
     }
 }
+
 
