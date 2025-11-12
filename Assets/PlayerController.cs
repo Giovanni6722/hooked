@@ -109,6 +109,10 @@ public class PlayerController : MonoBehaviour
     [Range(0f,1f)] public float momentumFloorFraction = 0.35f; // minimum fraction of kick speed kept early
     public float momentumFloorTime = 0.10f;          // duration to hold momentum floor
 
+    [Header("Wall Latch / Coyote (Approach)")]
+    public float wallApproachCoyoteTime = 0.08f;     // allows brief no-contact latch when pressing into wall
+    public float nearWallRadiusMultiplier = 1.25f;   // enlarges the check radius for “near wall” pre-grab
+
     [Header("Debug")]
     public bool debugWalls = false;
 
@@ -135,21 +139,19 @@ public class PlayerController : MonoBehaviour
     private int lastWallSideForCoyote = 0;
 
     // momentum state for wall jump
-    private float wallJumpControlTimer = 0f;    // counts down lock + ramp
-    private int wallJumpKickDir = 0;            // remembers kick direction during momentum
+    private float wallJumpControlTimer = 0f;
+    private int wallJumpKickDir = 0;
 
-    // short ramp-in window so horizontal kick doesn't teleport
     private float wallKickAccelTimer = 0f;
-
-    // remembers the horizontal target speed for the current wall-jump
     private float wallKickTargetX = 0f;
-
-    // remembers the starting kick magnitude to enforce early momentum floor
     private float kickAbsXAtLaunch = 0f;
 
-    // additional timers for reintroducing input and preserving momentum floor
     private float inputReturnTimer = 0f;
     private float momentumFloorTimer = 0f;
+
+    // maintains a short latch when approaching a wall to avoid contact flicker
+    private float wallLatchTimer = 0f;              
+    private bool wasOnWallEffective = false;        
 
     void Awake()
     {
@@ -208,43 +210,79 @@ public class PlayerController : MonoBehaviour
             inputReturnTimer = 0f;
             momentumFloorTimer = 0f;
             kickAbsXAtLaunch = 0f;
+
+            wallLatchTimer = 0f;
+            wasOnWallEffective = false;
         }
 
-        // wall detection
+        // wall detection positions
         Vector2 basePos = wallCheck.position;
         Vector2 rightPos = basePos + Vector2.right * wallCheckOffset;
         Vector2 leftPos  = basePos + Vector2.left  * wallCheckOffset;
 
+        // contact checks
         bool hitRight = Physics2D.OverlapCircle(rightPos, wallCheckRadius, groundLayer);
         bool hitLeft  = Physics2D.OverlapCircle(leftPos,  wallCheckRadius, groundLayer);
 
+        // “near” checks (slightly larger) to allow approach coyote
+        float nearR = wallCheckRadius * nearWallRadiusMultiplier;
+        bool nearRight = Physics2D.OverlapCircle(rightPos, nearR, groundLayer);
+        bool nearLeft  = Physics2D.OverlapCircle(leftPos,  nearR, groundLayer);
+
         bool touchingWall = !isGrounded && (hitRight || hitLeft);
+        bool nearWall = !isGrounded && (nearRight || nearLeft);
 
         bool allowWall = wallRegrabTimer <= 0f;
-        isOnWall = touchingWall && allowWall;
-        wallSide = hitRight ? 1 : (hitLeft ? -1 : 0);
 
-        if (isOnWall)
+        // input intent toward a side
+        bool pressingRight = moveInput.x > 0.1f;
+        bool pressingLeft  = moveInput.x < -0.1f;
+
+        // refresh approach latch when either actually touching,
+        // or near + pressing toward that side, and allowed to wall
+        if (allowWall && (touchingWall ||
+            (nearWall && ((nearRight && pressingRight) || (nearLeft && pressingLeft)))))
         {
-            wallCoyoteCounter = wallCoyoteTime;
-            lastWallSideForCoyote = wallSide;
+            wallLatchTimer = wallApproachCoyoteTime; // refresh latch window
         }
         else
         {
-            wallCoyoteCounter = Mathf.Max(0f, wallCoyoteCounter - Time.deltaTime);
+            wallLatchTimer = Mathf.Max(0f, wallLatchTimer - Time.deltaTime);
         }
 
-        if (isOnWall && wallSide != 0 && wallSide != lastWallJumpSide) lastWallJumpSide = 0;
-        if (isOnWall && !wasOnWallLastFrame)
+        // effective wall state considers touch OR active latch (pre-coyote)
+        bool effectiveOnWall = allowWall && !isGrounded && (touchingWall || wallLatchTimer > 0f);
+
+        // pick an effective side: prefer actual contact, else near side
+        int effectiveSide = 0;
+        if (hitRight) effectiveSide = 1;
+        else if (hitLeft) effectiveSide = -1;
+        else if (nearRight) effectiveSide = 1;
+        else if (nearLeft) effectiveSide = -1;
+
+        isOnWall = effectiveOnWall;
+        wallSide = effectiveSide;
+
+        // on first effective contact: start grace/cling and refill airtime resources
+        if (effectiveOnWall && !wasOnWallEffective)
         {
             wallAttachTimer = wallAttachGrace;
             wallClingTimer  = maxWallClingTime;
             isWallClinging  = false;
+
+            // refill airtime resources on first wall contact
+            availableAirDashes  = dashCount;
+            extraJumpsRemaining = maxExtraJumps;
+            dashReadyInAir      = true;
+            dashCooldownTicks   = 0;
         }
+
+        wasOnWallEffective = effectiveOnWall;
+        wasOnWallLastFrame = isOnWall;
 
         if (debugWalls)
         {
-            Debug.Log($"WALL touch={touchingWall} side={wallSide} grounded={isGrounded} clingTimer={wallClingTimer} wallCoyote={wallCoyoteCounter}");
+            Debug.Log($"WALL eff={effectiveOnWall} side={wallSide} grounded={isGrounded} latch={wallLatchTimer:0.000}");
         }
 
         if (isGrounded) coyoteTimeCounter = coyoteTime;
@@ -254,16 +292,14 @@ public class PlayerController : MonoBehaviour
 
         if (dashCooldownTimer > 0f) dashCooldownTimer -= Time.deltaTime;
         if (wallRegrabTimer > 0f)   wallRegrabTimer   -= Time.deltaTime;
-
-        wasOnWallLastFrame = isOnWall;
     }
 
     void FixedUpdate()
     {
         if (dashCooldownTicks > 0) dashCooldownTicks--;
 
-        float vx = rb.velocity.x;
-        float vy = rb.velocity.y;
+        float vx = rb.linearVelocity.x;
+        float vy = rb.linearVelocity.y;
 
         if (isDashing)
         {
@@ -301,7 +337,7 @@ public class PlayerController : MonoBehaviour
             }
             else
             {
-                vx = rb.velocity.x; // keeps carried momentum before the momentum gate runs
+                vx = rb.linearVelocity.x; // keeps carried momentum before the momentum gate runs
             }
 
             bool pressingIntoWall = (wallSide == 1 && moveInput.x > 0.1f) || (wallSide == -1 && moveInput.x < -0.1f);
@@ -359,15 +395,26 @@ public class PlayerController : MonoBehaviour
                     }
                     else
                     {
+                        // --- CONSISTENT WALL SLIDE (gravity-agnostic) ---
                         float dot = moveInput.x * wallSide;
 
                         float targetSpeed;
-                        if      (dot >  0.1f) targetSpeed = wallSlideSpeedInto;
-                        else if (dot < -0.1f) targetSpeed = wallSlideSpeedAway;
-                        else                  targetSpeed = wallSlideSpeedNeutral;
+                        if      (dot >  0.1f) targetSpeed = wallSlideSpeedInto;    // holding toward wall
+                        else if (dot < -0.1f) targetSpeed = wallSlideSpeedAway;    // holding away from wall
+                        else                  targetSpeed = wallSlideSpeedNeutral; // no horizontal input
 
                         float targetVy = -Mathf.Abs(targetSpeed);
-                        vy = Mathf.MoveTowards(vy, targetVy, wallSlideAccel * Time.fixedDeltaTime);
+
+                        // hard cap downward velocity so gravity/fall history can't exceed slide speed
+                        if (vy < targetVy)
+                        {
+                            vy = targetVy; // immediate clamp if falling faster than allowed
+                        }
+                        else
+                        {
+                            // smooth approach when falling slower or moving upward
+                            vy = Mathf.MoveTowards(vy, targetVy, wallSlideAccel * Time.fixedDeltaTime);
+                        }
                     }
                 }
             }
@@ -467,7 +514,7 @@ public class PlayerController : MonoBehaviour
                 }
             }
 
-            // ──────────────── ENHANCED MOMENTUM STEERING GATE (direction-aware) ────────────────
+            // ENHANCED MOMENTUM STEERING GATE (direction-aware)
             if (wallJumpControlTimer > 0f)
             {
                 wallJumpControlTimer -= Time.fixedDeltaTime;
@@ -476,17 +523,15 @@ public class PlayerController : MonoBehaviour
                 float elapsed = total - wallJumpControlTimer;
 
                 int inputSign = (Mathf.Abs(moveInput.x) > 0.01f) ? (moveInput.x > 0f ? 1 : -1) : 0;
-                bool holdingAway   = (inputSign != 0) && (inputSign ==  wallJumpKickDir);  // away from wall
-                bool holdingToward = (inputSign != 0) && (inputSign == -wallJumpKickDir);  // toward wall
+                bool holdingAway   = (inputSign != 0) && (inputSign ==  wallJumpKickDir);
+                bool holdingToward = (inputSign != 0) && (inputSign == -wallJumpKickDir);
 
-                // optional early kick ramp to avoid teleport
                 if (useEnhancedWallJumpMomentum && wallKickAccelTimer > 0f && wallJumpKickDir != 0)
                 {
                     wallKickAccelTimer -= Time.fixedDeltaTime;
                     vx = Mathf.MoveTowards(vx, wallKickTargetX, wallKickAccel * Time.fixedDeltaTime);
                 }
 
-                // momentum floor to prevent dead stop right after kick
                 if (momentumFloorTimer > 0f && wallJumpKickDir != 0)
                 {
                     momentumFloorTimer -= Time.fixedDeltaTime;
@@ -497,14 +542,12 @@ public class PlayerController : MonoBehaviour
 
                 if (holdingAway)
                 {
-                    // immediate control when going with the kick; smooth via acceleration cap
                     float desired = moveInput.x * moveSpeed;
                     float maxAccel = inputReturnAccel * Time.fixedDeltaTime;
                     float delta = Mathf.Clamp(desired - vx, -maxAccel, maxAccel);
                     vx += delta;
 
-                    // delay momentum bleed a touch so acceleration isn't fighting drag in the first frames
-                    float dragDelay = 0.05f; // small buffer to prevent stutter
+                    float dragDelay = 0.05f; // prevents early tug-of-war
                     if (wallKickAccelTimer <= 0f && elapsed >= wallJumpLockTime + dragDelay)
                     {
                         float t = Mathf.Clamp01(elapsed / Mathf.Max(0.0001f, total));
@@ -518,7 +561,7 @@ public class PlayerController : MonoBehaviour
                 }
                 else
                 {
-                    float control; // 0..1
+                    float control;
                     if (elapsed <= wallJumpLockTime) control = 0f;
                     else control = Mathf.Clamp01((elapsed - wallJumpLockTime) / Mathf.Max(0.0001f, wallJumpRampTime));
                     control *= wallJumpMaxControl;
@@ -570,12 +613,11 @@ public class PlayerController : MonoBehaviour
                     kickAbsXAtLaunch = 0f;
                 }
             }
-            // ────────────────────────────────────────────────────────────────────────────────
 
             if (vy > 0f && !jumpHeld) vy *= shortHopMultiplier;
         }
 
-        rb.velocity = new Vector2(vx, vy);
+        rb.linearVelocity = new Vector2(vx, vy);
         rb.gravityScale = isWallClinging ? wallClingGravityScale : normalGravityScale;
     }
 
@@ -610,7 +652,7 @@ public class PlayerController : MonoBehaviour
             else { isDashing = false; return; }
         }
 
-        rb.velocity = new Vector2(dashSpeed * dashDirection, rb.velocity.y);
+        rb.linearVelocity = new Vector2(dashSpeed * dashDirection, rb.linearVelocity.y);
 
         if (dashInvincibility) StartCoroutine(DashIFrames());
     }
@@ -639,6 +681,12 @@ public class PlayerController : MonoBehaviour
             Gizmos.DrawWireCube(leftPos,  wallCheckSize);
             Gizmos.DrawWireSphere(rightPos, wallCheckRadius);
             Gizmos.DrawWireSphere(leftPos,  wallCheckRadius);
+
+            float nearR = wallCheckRadius * nearWallRadiusMultiplier;
+            Gizmos.color = new Color(0f, 0.6f, 1f, 0.35f);
+            Gizmos.DrawWireSphere(rightPos, nearR);
+            Gizmos.DrawWireSphere(leftPos,  nearR);
         }
     }
 }
+
