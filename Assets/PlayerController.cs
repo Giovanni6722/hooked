@@ -321,8 +321,8 @@ public class PlayerController : MonoBehaviour
     {
         if (dashCooldownTicks > 0) dashCooldownTicks--;
 
-        float vx = rb.velocity.x;
-        float vy = rb.velocity.y;
+        float vx = rb.linearVelocity.x;
+        float vy = rb.linearVelocity.y;
 
         if (isDashing)
         {
@@ -360,7 +360,7 @@ public class PlayerController : MonoBehaviour
             }
             else
             {
-                vx = rb.velocity.x; // keeps carried momentum before the momentum gate runs
+                vx = rb.linearVelocity.x; // keeps carried momentum before the momentum gate runs
             }
 
             bool pressingIntoWall = (wallSide == 1 && moveInput.x > 0.1f) || (wallSide == -1 && moveInput.x < -0.1f);
@@ -638,7 +638,7 @@ public class PlayerController : MonoBehaviour
             if (vy > 0f && !jumpHeld) vy *= shortHopMultiplier;
         }
 
-        rb.velocity = new Vector2(vx, vy);
+        rb.linearVelocity = new Vector2(vx, vy);
         rb.gravityScale = isWallClinging ? wallClingGravityScale : normalGravityScale;
     }
 
@@ -673,7 +673,7 @@ public class PlayerController : MonoBehaviour
             else { isDashing = false; return; }
         }
 
-        rb.velocity = new Vector2(dashSpeed * dashDirection, rb.velocity.y);
+        rb.linearVelocity = new Vector2(dashSpeed * dashDirection, rb.linearVelocity.y);
 
         if (dashInvincibility) StartCoroutine(DashIFrames());
     }
@@ -710,5 +710,3 @@ public class PlayerController : MonoBehaviour
         }
     }
 }
-
-

@@ -172,15 +172,6 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": ""Press"",
                     ""initialStateCheck"": false
-                },
-                {
-                    ""name"": ""New action"",
-                    ""type"": ""Button"",
-                    ""id"": ""ec451f83-cf6f-4298-b9f3-2c3759114528"",
-                    ""expectedControlType"": """",
-                    ""processors"": """",
-                    ""interactions"": """",
-                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -566,17 +557,6 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": ""Keyboard&Mouse"",
                     ""action"": ""Crouch"",
-                    ""isComposite"": false,
-                    ""isPartOfComposite"": false
-                },
-                {
-                    ""name"": """",
-                    ""id"": ""aa7818fb-01f8-4c15-9ff9-32a8e6dfec26"",
-                    ""path"": """",
-                    ""interactions"": """",
-                    ""processors"": """",
-                    ""groups"": """",
-                    ""action"": ""New action"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -1097,6 +1077,160 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""isPartOfComposite"": false
                 }
             ]
+        },
+        {
+            ""name"": ""Grapple"",
+            ""id"": ""1ab5e854-1deb-487d-8d54-57bdaa8685c4"",
+            ""actions"": [
+                {
+                    ""name"": ""Fire Grapple"",
+                    ""type"": ""Button"",
+                    ""id"": ""85b07a81-3d8f-4287-9ce0-9630c194686c"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Grapple Swing"",
+                    ""type"": ""Value"",
+                    ""id"": ""1fcfca58-8f04-446a-8f00-46d4971f301c"",
+                    ""expectedControlType"": ""Axis"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""Grapple Reel"",
+                    ""type"": ""Value"",
+                    ""id"": ""6470e638-39e6-4263-bb7f-9c7e133f09c0"",
+                    ""expectedControlType"": ""Axis"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""Grapple Point"",
+                    ""type"": ""Value"",
+                    ""id"": ""f76c17ed-3f83-4382-9133-c56b7351aae2"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                }
+            ],
+            ""bindings"": [
+                {
+                    ""name"": """",
+                    ""id"": ""feea462f-2e81-49ac-bedb-30be25a039ec"",
+                    ""path"": ""<Mouse>/leftButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Fire Grapple"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""c6cdc098-6b58-4557-9072-b2fd46c37700"",
+                    ""path"": ""<Gamepad>/rightTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Fire Grapple"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""59ac64f7-bf66-43e2-80a0-de2f8e7068a5"",
+                    ""path"": ""<Keyboard>/a"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Grapple Swing"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""73f6bfa2-5fd2-4c4d-a0d7-6a22536fe5ee"",
+                    ""path"": ""<Keyboard>/d"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Grapple Swing"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""471f2400-4243-42a4-86a0-8347c6710a0c"",
+                    ""path"": ""<Gamepad>/leftStick/x"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Grapple Swing"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""df73d790-db91-426d-a91a-78a9bd119770"",
+                    ""path"": ""<Keyboard>/w"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Grapple Reel"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""6a08da95-7920-4b31-83d5-41b72fc4ff96"",
+                    ""path"": ""<Keyboard>/s"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Grapple Reel"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e0f0e38a-c627-4a81-89ac-478070a5d7f1"",
+                    ""path"": ""<Gamepad>/dpad/y"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Grapple Reel"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""fe2a364c-7607-46b3-841f-159a69ec3a4a"",
+                    ""path"": ""<Pointer>/position"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Keyboard&Mouse"",
+                    ""action"": ""Grapple Point"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""6f01d1b1-f863-4249-bf76-c63c98d5c094"",
+                    ""path"": ""<Gamepad>/rightStick"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": "";Gamepad"",
+                    ""action"": ""Grapple Point"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                }
+            ]
         }
     ],
     ""controlSchemes"": [
@@ -1173,7 +1307,6 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         m_Player_Previous = m_Player.FindAction("Previous", throwIfNotFound: true);
         m_Player_Next = m_Player.FindAction("Next", throwIfNotFound: true);
         m_Player_Sprint = m_Player.FindAction("Sprint", throwIfNotFound: true);
-        m_Player_Newaction = m_Player.FindAction("New action", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1186,12 +1319,19 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         m_UI_ScrollWheel = m_UI.FindAction("ScrollWheel", throwIfNotFound: true);
         m_UI_TrackedDevicePosition = m_UI.FindAction("TrackedDevicePosition", throwIfNotFound: true);
         m_UI_TrackedDeviceOrientation = m_UI.FindAction("TrackedDeviceOrientation", throwIfNotFound: true);
+        // Grapple
+        m_Grapple = asset.FindActionMap("Grapple", throwIfNotFound: true);
+        m_Grapple_FireGrapple = m_Grapple.FindAction("Fire Grapple", throwIfNotFound: true);
+        m_Grapple_GrappleSwing = m_Grapple.FindAction("Grapple Swing", throwIfNotFound: true);
+        m_Grapple_GrappleReel = m_Grapple.FindAction("Grapple Reel", throwIfNotFound: true);
+        m_Grapple_GrapplePoint = m_Grapple.FindAction("Grapple Point", throwIfNotFound: true);
     }
 
     ~@PlayerControls()
     {
         UnityEngine.Debug.Assert(!m_Player.enabled, "This will cause a leak and performance issues, PlayerControls.Player.Disable() has not been called.");
         UnityEngine.Debug.Assert(!m_UI.enabled, "This will cause a leak and performance issues, PlayerControls.UI.Disable() has not been called.");
+        UnityEngine.Debug.Assert(!m_Grapple.enabled, "This will cause a leak and performance issues, PlayerControls.Grapple.Disable() has not been called.");
     }
 
     /// <summary>
@@ -1276,7 +1416,6 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Previous;
     private readonly InputAction m_Player_Next;
     private readonly InputAction m_Player_Sprint;
-    private readonly InputAction m_Player_Newaction;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -1324,10 +1463,6 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Player/Sprint".
         /// </summary>
         public InputAction @Sprint => m_Wrapper.m_Player_Sprint;
-        /// <summary>
-        /// Provides access to the underlying input action "Player/Newaction".
-        /// </summary>
-        public InputAction @Newaction => m_Wrapper.m_Player_Newaction;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -1381,9 +1516,6 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Sprint.started += instance.OnSprint;
             @Sprint.performed += instance.OnSprint;
             @Sprint.canceled += instance.OnSprint;
-            @Newaction.started += instance.OnNewaction;
-            @Newaction.performed += instance.OnNewaction;
-            @Newaction.canceled += instance.OnNewaction;
         }
 
         /// <summary>
@@ -1422,9 +1554,6 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Sprint.started -= instance.OnSprint;
             @Sprint.performed -= instance.OnSprint;
             @Sprint.canceled -= instance.OnSprint;
-            @Newaction.started -= instance.OnNewaction;
-            @Newaction.performed -= instance.OnNewaction;
-            @Newaction.canceled -= instance.OnNewaction;
         }
 
         /// <summary>
@@ -1653,6 +1782,135 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     /// Provides a new <see cref="UIActions" /> instance referencing this action map.
     /// </summary>
     public UIActions @UI => new UIActions(this);
+
+    // Grapple
+    private readonly InputActionMap m_Grapple;
+    private List<IGrappleActions> m_GrappleActionsCallbackInterfaces = new List<IGrappleActions>();
+    private readonly InputAction m_Grapple_FireGrapple;
+    private readonly InputAction m_Grapple_GrappleSwing;
+    private readonly InputAction m_Grapple_GrappleReel;
+    private readonly InputAction m_Grapple_GrapplePoint;
+    /// <summary>
+    /// Provides access to input actions defined in input action map "Grapple".
+    /// </summary>
+    public struct GrappleActions
+    {
+        private @PlayerControls m_Wrapper;
+
+        /// <summary>
+        /// Construct a new instance of the input action map wrapper class.
+        /// </summary>
+        public GrappleActions(@PlayerControls wrapper) { m_Wrapper = wrapper; }
+        /// <summary>
+        /// Provides access to the underlying input action "Grapple/FireGrapple".
+        /// </summary>
+        public InputAction @FireGrapple => m_Wrapper.m_Grapple_FireGrapple;
+        /// <summary>
+        /// Provides access to the underlying input action "Grapple/GrappleSwing".
+        /// </summary>
+        public InputAction @GrappleSwing => m_Wrapper.m_Grapple_GrappleSwing;
+        /// <summary>
+        /// Provides access to the underlying input action "Grapple/GrappleReel".
+        /// </summary>
+        public InputAction @GrappleReel => m_Wrapper.m_Grapple_GrappleReel;
+        /// <summary>
+        /// Provides access to the underlying input action "Grapple/GrapplePoint".
+        /// </summary>
+        public InputAction @GrapplePoint => m_Wrapper.m_Grapple_GrapplePoint;
+        /// <summary>
+        /// Provides access to the underlying input action map instance.
+        /// </summary>
+        public InputActionMap Get() { return m_Wrapper.m_Grapple; }
+        /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Enable()" />
+        public void Enable() { Get().Enable(); }
+        /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Disable()" />
+        public void Disable() { Get().Disable(); }
+        /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.enabled" />
+        public bool enabled => Get().enabled;
+        /// <summary>
+        /// Implicitly converts an <see ref="GrappleActions" /> to an <see ref="InputActionMap" /> instance.
+        /// </summary>
+        public static implicit operator InputActionMap(GrappleActions set) { return set.Get(); }
+        /// <summary>
+        /// Adds <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
+        /// </summary>
+        /// <param name="instance">Callback instance.</param>
+        /// <remarks>
+        /// If <paramref name="instance" /> is <c>null</c> or <paramref name="instance"/> have already been added this method does nothing.
+        /// </remarks>
+        /// <seealso cref="GrappleActions" />
+        public void AddCallbacks(IGrappleActions instance)
+        {
+            if (instance == null || m_Wrapper.m_GrappleActionsCallbackInterfaces.Contains(instance)) return;
+            m_Wrapper.m_GrappleActionsCallbackInterfaces.Add(instance);
+            @FireGrapple.started += instance.OnFireGrapple;
+            @FireGrapple.performed += instance.OnFireGrapple;
+            @FireGrapple.canceled += instance.OnFireGrapple;
+            @GrappleSwing.started += instance.OnGrappleSwing;
+            @GrappleSwing.performed += instance.OnGrappleSwing;
+            @GrappleSwing.canceled += instance.OnGrappleSwing;
+            @GrappleReel.started += instance.OnGrappleReel;
+            @GrappleReel.performed += instance.OnGrappleReel;
+            @GrappleReel.canceled += instance.OnGrappleReel;
+            @GrapplePoint.started += instance.OnGrapplePoint;
+            @GrapplePoint.performed += instance.OnGrapplePoint;
+            @GrapplePoint.canceled += instance.OnGrapplePoint;
+        }
+
+        /// <summary>
+        /// Removes <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
+        /// </summary>
+        /// <remarks>
+        /// Calling this method when <paramref name="instance" /> have not previously been registered has no side-effects.
+        /// </remarks>
+        /// <seealso cref="GrappleActions" />
+        private void UnregisterCallbacks(IGrappleActions instance)
+        {
+            @FireGrapple.started -= instance.OnFireGrapple;
+            @FireGrapple.performed -= instance.OnFireGrapple;
+            @FireGrapple.canceled -= instance.OnFireGrapple;
+            @GrappleSwing.started -= instance.OnGrappleSwing;
+            @GrappleSwing.performed -= instance.OnGrappleSwing;
+            @GrappleSwing.canceled -= instance.OnGrappleSwing;
+            @GrappleReel.started -= instance.OnGrappleReel;
+            @GrappleReel.performed -= instance.OnGrappleReel;
+            @GrappleReel.canceled -= instance.OnGrappleReel;
+            @GrapplePoint.started -= instance.OnGrapplePoint;
+            @GrapplePoint.performed -= instance.OnGrapplePoint;
+            @GrapplePoint.canceled -= instance.OnGrapplePoint;
+        }
+
+        /// <summary>
+        /// Unregisters <param cref="instance" /> and unregisters all input action callbacks via <see cref="GrappleActions.UnregisterCallbacks(IGrappleActions)" />.
+        /// </summary>
+        /// <seealso cref="GrappleActions.UnregisterCallbacks(IGrappleActions)" />
+        public void RemoveCallbacks(IGrappleActions instance)
+        {
+            if (m_Wrapper.m_GrappleActionsCallbackInterfaces.Remove(instance))
+                UnregisterCallbacks(instance);
+        }
+
+        /// <summary>
+        /// Replaces all existing callback instances and previously registered input action callbacks associated with them with callbacks provided via <param cref="instance" />.
+        /// </summary>
+        /// <remarks>
+        /// If <paramref name="instance" /> is <c>null</c>, calling this method will only unregister all existing callbacks but not register any new callbacks.
+        /// </remarks>
+        /// <seealso cref="GrappleActions.AddCallbacks(IGrappleActions)" />
+        /// <seealso cref="GrappleActions.RemoveCallbacks(IGrappleActions)" />
+        /// <seealso cref="GrappleActions.UnregisterCallbacks(IGrappleActions)" />
+        public void SetCallbacks(IGrappleActions instance)
+        {
+            foreach (var item in m_Wrapper.m_GrappleActionsCallbackInterfaces)
+                UnregisterCallbacks(item);
+            m_Wrapper.m_GrappleActionsCallbackInterfaces.Clear();
+            AddCallbacks(instance);
+        }
+    }
+    /// <summary>
+    /// Provides a new <see cref="GrappleActions" /> instance referencing this action map.
+    /// </summary>
+    public GrappleActions @Grapple => new GrappleActions(this);
     private int m_KeyboardMouseSchemeIndex = -1;
     /// <summary>
     /// Provides access to the input control scheme.
@@ -1788,13 +2046,6 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnSprint(InputAction.CallbackContext context);
-        /// <summary>
-        /// Method invoked when associated input action "New action" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
-        /// </summary>
-        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
-        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
-        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnNewaction(InputAction.CallbackContext context);
     }
     /// <summary>
     /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "UI" which allows adding and removing callbacks.
@@ -1873,5 +2124,41 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnTrackedDeviceOrientation(InputAction.CallbackContext context);
+    }
+    /// <summary>
+    /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Grapple" which allows adding and removing callbacks.
+    /// </summary>
+    /// <seealso cref="GrappleActions.AddCallbacks(IGrappleActions)" />
+    /// <seealso cref="GrappleActions.RemoveCallbacks(IGrappleActions)" />
+    public interface IGrappleActions
+    {
+        /// <summary>
+        /// Method invoked when associated input action "Fire Grapple" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnFireGrapple(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Grapple Swing" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnGrappleSwing(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Grapple Reel" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnGrappleReel(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Grapple Point" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnGrapplePoint(InputAction.CallbackContext context);
     }
 }
