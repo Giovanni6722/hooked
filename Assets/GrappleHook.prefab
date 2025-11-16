@@ -233,7 +233,7 @@ CircleCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
@@ -251,6 +251,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 763a07bc573235b4aaa3ab232e9b98b6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GrappleHookProjectile
-  hitMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
