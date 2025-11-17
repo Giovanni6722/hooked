@@ -4,10 +4,14 @@ using UnityEngine;
 [RequireComponent(typeof(LineRenderer))]
 public class GrappleHookProjectile : MonoBehaviour
 {
+    [Header("Latching")]
+    [Tooltip("Hook is allowed to latch onto anything exept the player and anything on the notGrapplableLayerMask.")]
+    public LayerMask latchMask = ~0; // Default to everything
+    public float maxDistance = 15f;
+    private bool isLatched = false;
     private Transform player;
     private Vector2 direction;
     private float speed;
-    private float maxDistance;
     private float distanceTravelled;
 
     private LineRenderer rope;
@@ -23,10 +27,7 @@ public class GrappleHookProjectile : MonoBehaviour
         launcher = player.GetComponent<GrappleHookLauncher>();
 
         rope = GetComponent<LineRenderer>();
-        if (rope == null)
-        {
-            rope = gameObject.AddComponent<LineRenderer>();
-        }
+        if (rope == null) {rope = gameObject.AddComponent<LineRenderer>();}
 
         rope.useWorldSpace = true;
         rope.positionCount = 2;
@@ -54,25 +55,27 @@ public class GrappleHookProjectile : MonoBehaviour
             return;
         }
 
-        // Move forward
-        float step = speed * Time.deltaTime;
-        Vector2 currentPos = transform.position;
-        Vector2 targetPos  = currentPos + direction * step;
+        if(!isLatched)
+        {
+            float step = speed * Time.deltaTime;
+            Vector2 currentPos = transform.position;
+            Vector2 targetPos  = currentPos + direction * step;
 
-        transform.position = targetPos;
-        distanceTravelled += step;
+            transform.position = targetPos;
+            distanceTravelled += step;
+
+            if (distanceTravelled >= maxDistance)
+            {
+                Debug.Log("[GrappleHookProjectile] Max distance reached, destroying hook.");
+                DestroySelf();
+            }
+        }
 
         // Update rope endpoints
         UpdateRope();
 
         // Debug line as backup visual
         Debug.DrawLine(player.position, transform.position, Color.yellow);
-
-        if (distanceTravelled >= maxDistance)
-        {
-            Debug.Log("[GrappleHookProjectile] Max distance reached, destroying hook.");
-            DestroySelf();
-        }
     }
 
     void UpdateRope()
@@ -81,6 +84,24 @@ public class GrappleHookProjectile : MonoBehaviour
 
         rope.SetPosition(0, player.position);
         rope.SetPosition(1, transform.position);
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        LatchTarget(other);
+    }
+
+    void LatchTarget(Collider2D other)
+    {
+        if (isLatched) return;                                              // Already latched fuh
+        if (other.isTrigger) return;                                        // Ignore triggers fuh
+        if (other.transform == player) return;                              // Don't latch onto the player fuh
+        if ((latchMask.value & (1 << other.gameObject.layer)) == 0) return; // Layer not allowed fuh
+        isLatched = true;                                                   // Mark as latched fuh
+        Vector2 contactPoint = other.ClosestPoint(transform.position);      // Get contact point fuh
+        transform.position = contactPoint;                                  // Snap hook to contact point fuh
+
+        Debug.Log($"[GrappleHookProjectile] Latched onto {other.name} at {contactPoint}."); // Log fuh
     }
 
     void DestroySelf()
