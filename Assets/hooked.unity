@@ -1322,8 +1322,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GrappleHookLauncher
   hookPrefab: {fileID: 6714434370290741332, guid: 00666149fdd5c4f4b95623c38587c9d6, type: 3}
-  hookSpeed: 25
-  maxHookDistance: 20
+  hookSpeed: 100
+  maxHookDistance: 10
   debugLogs: 1
 --- !u!1 &1433124389
 GameObject:

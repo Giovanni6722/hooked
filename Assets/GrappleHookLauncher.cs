@@ -7,23 +7,19 @@ public class GrappleHookLauncher : MonoBehaviour
     public GameObject hookPrefab;       // prefab with GrappleHookProjectile + LineRenderer
     public float hookSpeed = 25f;
     public float maxHookDistance = 20f;
+    public float hookSpawnOffset = 0.4f;   // spawn slightly in front of player
 
     [Header("Debug")]
-    public bool debugLogs = true;
+    public bool debugLogs = false;
 
     private GrappleHookProjectile activeHook;
 
     void Update()
     {
         // Make sure Game view has focus when you click
-        if (Mouse.current == null)
-        {
-            if (debugLogs)
-                Debug.LogWarning("[GrappleHookLauncher] Mouse.current is null. Check that the Input System is set up and you're in the Game view.");
-            return;
-        }
+        if (Mouse.current == null) return;
 
-        // Left click: fire new hook
+        // Left click: fire hook
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
             if (debugLogs) Debug.Log("[GrappleHookLauncher] Left click detected, trying to fire hook...");
@@ -49,7 +45,6 @@ public class GrappleHookLauncher : MonoBehaviour
         Vector2 playerPos = transform.position;
         Vector2 mouseScreen = Mouse.current.position.ReadValue();
 
-        // Use distance from camera to player so the world point is on the correct plane
         float zDist = Mathf.Abs(cam.transform.position.z - playerPos.y);
         Vector3 mouseWorld3 = cam.ScreenToWorldPoint(new Vector3(mouseScreen.x, mouseScreen.y, zDist));
         Vector2 mouseWorld = mouseWorld3;
@@ -59,17 +54,24 @@ public class GrappleHookLauncher : MonoBehaviour
             dir = Vector2.right;
         dir.Normalize();
 
-        if (debugLogs)
+        // enforce only one hook at a time
+        if (activeHook != null)
         {
-            Debug.Log($"[GrappleHookLauncher] Firing hook. playerPos={playerPos}, mouseWorld={mouseWorld}, dir={dir}");
+            if (debugLogs) Debug.Log("[GrappleHookLauncher] Existing hook found, destroying it before spawning a new one.");
+            Destroy(activeHook.gameObject);
+            activeHook = null;
         }
 
-        GameObject hookObj = Instantiate(hookPrefab, playerPos, Quaternion.identity);
+        // Spawn hook slightly in front of the player so it doesn't overlap the player collider
+        Vector2 spawnPos = playerPos + dir * hookSpawnOffset;
+
+        GameObject hookObj = Instantiate(hookPrefab, spawnPos, Quaternion.identity);
         activeHook = hookObj.GetComponent<GrappleHookProjectile>();
 
         if (activeHook != null)
         {
             activeHook.Init(transform, dir, hookSpeed, maxHookDistance);
+            if (debugLogs) Debug.Log("[GrappleHookLauncher] Hook spawned and initialized.");
         }
         else
         {
@@ -77,11 +79,12 @@ public class GrappleHookLauncher : MonoBehaviour
         }
     }
 
-    // Called by hook when it dies / finishes
+    // Called by hook when it destroys itself (e.g. max distance, future release)
     public void ClearHook(GrappleHookProjectile hook)
     {
         if (activeHook == hook)
             activeHook = null;
     }
 }
+
 
