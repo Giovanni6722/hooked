@@ -101,6 +101,8 @@ public class GrappleHookProjectile : MonoBehaviour
         Vector2 contactPoint = other.ClosestPoint(transform.position);      // Get contact point fuh
         transform.position = contactPoint;                                  // Snap hook to contact point fuh
 
+        if (launcher != null) { launcher.OnHookLatched(this); }            // Tell launcher we latched fuh
+
         Debug.Log($"[GrappleHookProjectile] Latched onto {other.name} at {contactPoint}."); // Log fuh
     }
 

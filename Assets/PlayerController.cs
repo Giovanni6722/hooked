@@ -113,6 +113,22 @@ public class PlayerController : MonoBehaviour
     public float wallApproachCoyoteTime = 0.08f;     // allows brief no-contact latch when pressing into wall
     public float nearWallRadiusMultiplier = 1.25f;   // enlarges the check radius for “near wall” pre-grab
 
+    [Header("Grapple Swing Tuning")]
+    [Tooltip("Base tangential force while swinging when you hold left/right.")]
+    public float grappleSwingBaseForce = 12f;
+
+    [Tooltip("Extra scaling based on |horizontal input| (0 = constant push).")]
+    public float grappleSwingInputScale = 1f;
+
+    [Tooltip("How much horizontal input is needed before we apply any swing force.")]
+    public float grappleSwingDeadzone = 0.1f;
+
+    [Tooltip("Damping applied to tangential velocity when there is no swing input. Higher = settles faster.")]
+    public float grappleSwingDamping = 3f;
+
+    [Tooltip("Anchor must be at least this much higher than the player (in world units) to allow swing forces. Otherwise the rope acts like a leash.")]
+    public float grappleSwingOverheadOffset = 0.25f;
+
     [Header("Debug")]
     public bool debugWalls = false;
 
@@ -157,6 +173,9 @@ public class PlayerController : MonoBehaviour
     private bool wallRefreshGiven = false;          // true after granting resources on a wall side
     private int  wallRefreshSideGiven = 0;          // remembers which side granted the refresh
 
+    // Grapple
+    private GrappleHookLauncher grappleHookLauncher;
+
     void Awake()
     {
         controls = new PlayerControls();
@@ -176,6 +195,8 @@ public class PlayerController : MonoBehaviour
         rb.freezeRotation = true;
         normalGravityScale = rb.gravityScale;
 
+        grappleHookLauncher = GetComponent<GrappleHookLauncher>();
+
         if (wallJumpLockTime   <= 0f) wallJumpLockTime   = 0.10f;
         if (wallJumpRampTime   <= 0f) wallJumpRampTime   = 0.35f;
         if (wallJumpSteerLerp  <= 0f) wallJumpSteerLerp  = 12f;
@@ -190,6 +211,12 @@ public class PlayerController : MonoBehaviour
 
         // ground check
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
+
+        // let grapple know if we're grounded
+        if (grappleHookLauncher != null)
+        {
+            grappleHookLauncher.SetGrounded(isGrounded);
+        }
 
         // refill on ground
         if (isGrounded)
@@ -272,8 +299,6 @@ public class PlayerController : MonoBehaviour
         wallSide = effectiveSide;
 
         // one-time-per-wall refresh:
-        // grants once per side; does not re-grant for flicker on the same side;
-        // resets when grounded or when switching to the opposite wall side.
         if (isOnWall && wallSide != 0)
         {
             // allow a new grant if switching sides
@@ -324,6 +349,60 @@ public class PlayerController : MonoBehaviour
         float vx = rb.linearVelocity.x;
         float vy = rb.linearVelocity.y;
 
+        // ---------- Tether / Swing Logic ----------
+        bool tetherActive = grappleHookLauncher != null && grappleHookLauncher.IsTetherActive;
+        Vector2 anchorPos = Vector2.zero;
+        bool anchorOverhead = false;
+
+        if (tetherActive)
+        {
+            anchorPos = grappleHookLauncher.GetAnchorPosition();
+            // anchor must be meaningfully above the player to allow swing pumping
+            anchorOverhead = anchorPos.y > rb.position.y + grappleSwingOverheadOffset;
+        }
+
+        bool tetheredInAir = tetherActive && !isGrounded && anchorOverhead;
+
+        if (tetheredInAir)
+        {
+            // Let gravity + joint do the main motion.
+            // We only add a tangential "pump" based on left/right input.
+            float h = moveInput.x;
+            Vector2 r = (Vector2)rb.position - anchorPos;
+            float rMag = r.magnitude;
+
+            if (rMag > 0.001f)
+            {
+                Vector2 Rhat = r / rMag;
+                Vector2 That = new Vector2(-Rhat.y, Rhat.x);
+
+                if (Mathf.Abs(h) > grappleSwingDeadzone)
+                {
+                    // scale force smoothly from deadzone -> full input
+                    float absH = Mathf.Abs(h);
+                    float t = Mathf.InverseLerp(grappleSwingDeadzone, 1f, absH); // 0..1
+                    float forceMag = grappleSwingBaseForce * (t + t * grappleSwingInputScale);
+
+                    rb.AddForce(That * Mathf.Sign(h) * forceMag, ForceMode2D.Force);
+                }
+                else
+                {
+                    // no input: damp tangential velocity so you can settle into a dead hang
+                    float vTan = Vector2.Dot(rb.linearVelocity, That);
+                    float damp = grappleSwingDamping * Time.fixedDeltaTime;
+                    float factor = Mathf.Clamp01(1f - damp);
+                    float newVTan = vTan * factor;
+                    rb.linearVelocity += (newVTan - vTan) * That;
+                }
+            }
+
+            rb.gravityScale = normalGravityScale;
+            return; // skip normal ground/air movement while swinging
+        }
+        // NOTE: if tetherActive but !anchorOverhead, the rope behaves like a leash:
+        // normal movement below, DistanceJoint2D just limits how far you can get.
+
+        // ---------- Normal Movement / Dash / Walls ----------
         if (isDashing)
         {
             float dashVx = dashSpeed * (dashDirection >= 0 ? 1 : -1);
