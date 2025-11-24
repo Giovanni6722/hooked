@@ -213,10 +213,10 @@ public class PlayerController : MonoBehaviour
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
         // let grapple know if we're grounded
-        if (grappleHookLauncher != null)
-        {
-            grappleHookLauncher.SetGrounded(isGrounded);
-        }
+        //if (grappleHookLauncher != null)
+        //{
+        //    grappleHookLauncher.SetGrounded(isGrounded);
+        //}
 
         // refill on ground
         if (isGrounded)
@@ -357,8 +357,24 @@ public class PlayerController : MonoBehaviour
         if (tetherActive)
         {
             anchorPos = grappleHookLauncher.GetAnchorPosition();
-            // anchor must be meaningfully above the player to allow swing pumping
-            anchorOverhead = anchorPos.y > rb.position.y + grappleSwingOverheadOffset;
+
+            // Vector from player to anchor
+            Vector2 toAnchor = anchorPos - rb.position;
+            float dist = toAnchor.magnitude;
+
+            if (dist > 0f)
+            {
+                // 1 = vertical rope, 0 = horizontal rope
+                float verticalFrac = Mathf.Abs(toAnchor.y) / dist;
+
+                anchorOverhead =
+                    anchorPos.y > rb.position.y + grappleSwingOverheadOffset &&
+                    verticalFrac >= 0.8f;   // mostly vertical to count as overhead
+            }
+            else
+            {
+                anchorOverhead = false;
+            }
         }
 
         bool tetheredInAir = tetherActive && !isGrounded && anchorOverhead;
@@ -400,7 +416,7 @@ public class PlayerController : MonoBehaviour
             return; // skip normal ground/air movement while swinging
         }
         // NOTE: if tetherActive but !anchorOverhead, the rope behaves like a leash:
-        // normal movement below, DistanceJoint2D just limits how far you can get.
+        // normal movement below, GrappleHookLauncher just limits how far you can get.
 
         // ---------- Normal Movement / Dash / Walls ----------
         if (isDashing)
@@ -789,3 +805,4 @@ public class PlayerController : MonoBehaviour
         }
     }
 }
+

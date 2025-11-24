@@ -1073,6 +1073,7 @@ GameObject:
   - component: {fileID: 1386576764}
   - component: {fileID: 1386576768}
   - component: {fileID: 1386576772}
+  - component: {fileID: 1386576773}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -1308,6 +1309,11 @@ MonoBehaviour:
   momentumFloorTime: 0.1
   wallApproachCoyoteTime: 0.08
   nearWallRadiusMultiplier: 1.25
+  grappleSwingBaseForce: 20
+  grappleSwingInputScale: 1
+  grappleSwingDeadzone: 0.1
+  grappleSwingDamping: 5
+  grappleSwingOverheadOffset: 0.25
   debugWalls: 0
 --- !u!114 &1386576772
 MonoBehaviour:
@@ -1324,7 +1330,31 @@ MonoBehaviour:
   hookPrefab: {fileID: 6714434370290741332, guid: 00666149fdd5c4f4b95623c38587c9d6, type: 3}
   hookSpeed: 100
   maxHookDistance: 10
+  hookSpawnOffset: 0.4
+  ropeMinLength: 1.5
+  ropeMaxLength: 20
+  reelSpeed: 8
   debugLogs: 1
+--- !u!232 &1386576773
+DistanceJoint2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1386576763}
+  m_Enabled: 1
+  serializedVersion: 4
+  m_EnableCollision: 0
+  m_ConnectedRigidBody: {fileID: 0}
+  m_BreakForce: Infinity
+  m_BreakTorque: Infinity
+  m_BreakAction: 3
+  m_AutoConfigureConnectedAnchor: 0
+  m_Anchor: {x: 0, y: 0}
+  m_ConnectedAnchor: {x: 0, y: 0}
+  m_AutoConfigureDistance: 1
+  m_Distance: 1.1097488
+  m_MaxDistanceOnly: 0
 --- !u!1 &1433124389
 GameObject:
   m_ObjectHideFlags: 0

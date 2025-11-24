@@ -2,6 +2,8 @@
 using UnityEngine;
 
 [RequireComponent(typeof(LineRenderer))]
+[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(Collider2D))]
 public class GrappleHookProjectile : MonoBehaviour
 {
     [Header("Latching")]
@@ -16,6 +18,15 @@ public class GrappleHookProjectile : MonoBehaviour
 
     private LineRenderer rope;
     private GrappleHookLauncher launcher;
+    private Rigidbody2D rb;
+
+    void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        rb.bodyType = RigidbodyType2D.Kinematic;
+        rb.gravityScale = 0f;
+        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+    }
 
     public void Init(Transform playerTransform, Vector2 dir, float hookSpeed, float maxDist)
     {
@@ -58,10 +69,10 @@ public class GrappleHookProjectile : MonoBehaviour
         if(!isLatched)
         {
             float step = speed * Time.deltaTime;
-            Vector2 currentPos = transform.position;
+            Vector2 currentPos = rb.position;
             Vector2 targetPos  = currentPos + direction * step;
 
-            transform.position = targetPos;
+            rb.position = targetPos;
             distanceTravelled += step;
 
             if (distanceTravelled >= maxDistance)
@@ -88,6 +99,7 @@ public class GrappleHookProjectile : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
+        Debug.Log($"[GrappleHookProjectile] Trigger with {other.name} (layer {other.gameObject.layer}).");
         LatchTarget(other);
     }
 
@@ -99,9 +111,12 @@ public class GrappleHookProjectile : MonoBehaviour
         if ((latchMask.value & (1 << other.gameObject.layer)) == 0) return; // Layer not allowed fuh
         isLatched = true;                                                   // Mark as latched fuh
         Vector2 contactPoint = other.ClosestPoint(transform.position);      // Get contact point fuh
-        transform.position = contactPoint;                                  // Snap hook to contact point fuh
+        rb.position = contactPoint;                                         // Snap hook to contact point fuh
 
-        if (launcher != null) { launcher.OnHookLatched(this); }            // Tell launcher we latched fuh
+        if (launcher != null)
+        {
+            launcher.OnHookLatched(this);
+        }
 
         Debug.Log($"[GrappleHookProjectile] Latched onto {other.name} at {contactPoint}."); // Log fuh
     }
@@ -113,5 +128,10 @@ public class GrappleHookProjectile : MonoBehaviour
             launcher.ClearHook(this);
         }
         Destroy(gameObject);
+    }
+    //litterally the same fucking thing but poubluic fuh
+    public void DestroySelfPublic()
+    {
+        DestroySelf();
     }
 }
